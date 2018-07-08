@@ -28,3 +28,10 @@ ehthumbs.db
 
 # Glade temp files
 *~
+
+# Snap Directories
+gramps*.snap
+prime/
+parts/
+stage/
+snap/.snapcraft

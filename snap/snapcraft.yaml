@@ -1,0 +1,50 @@
+name: gramps
+version: 'devel'
+version-script: python3 -c "from gramps.version import VERSION ; print(VERSION + '-snap1')"
+summary: Research, organize and share your family tree with Gramps.
+description: |
+  Gramps is a free software project and community. We strive to produce
+  a genealogy program that is both intuitive for hobbyists and feature-complete
+  for professional genealogists. It is a community project, created,
+  developed and governed by genealogists.
+
+grade: stable
+confinement: strict
+
+parts:
+  gramps:
+    plugin: python
+    after:
+      - desktop-gtk3
+    stage-packages:
+      - librsvg2-2
+      - python3-gi
+      - python3-gi-cairo
+      - python3-bsddb3
+      - xdg-utils
+      - graphviz
+      - fonts-freefont-ttf
+      - gir1.2-gtk-3.0
+      - gir1.2-goocanvas-2.0
+      - gir1.2-gtkspell3-3.0
+      - gir1.2-osmgpsmap-1.0
+      - gir1.2-gexiv2-0.10
+      - python3-pil
+      - python3-icu
+
+apps:
+  gramps:
+    environment:
+      GRAMPSHOME: ${SNAP_USER_COMMON}/
+      GRAMPS_RESOURCES: ${SNAP}/share/
+    command: desktop-launch ${SNAP}/bin/gramps
+    desktop: share/applications/gramps.desktop
+    plugs:
+      - home
+      - unity7
+      - gsettings
+      - cups-control
+      - desktop
+      - desktop-legacy
+      - x11
+      - wayland
