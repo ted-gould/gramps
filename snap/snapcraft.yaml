@@ -12,9 +12,18 @@ grade: stable
 confinement: strict
 
 parts:
+  gtk-update-ppa:
+    plugin: nil
+    override-build: |
+      apt-get -y update
+      apt-get install -y software-properties-common
+      add-apt-repository -y ppa:ubuntu-desktop/gnome-3-26
+      apt-get -y update
+      apt-get -y dist-upgrade
   gramps:
     plugin: python
     after:
+      - gtk-update-ppa
       - desktop-gtk3
     stage-packages:
       - librsvg2-2
@@ -31,12 +40,18 @@ parts:
       - gir1.2-gexiv2-0.10
       - python3-pil
       - python3-icu
+      - locales-all
+      - libgtk-3-bin
+    override-build: |
+      sed -i.bak -e 's|Icon=gramps$|Icon=${SNAP}/share/gramps/images/gramps.svg|g' data/gramps.desktop.in
+      snapcraftctl build
 
 apps:
   gramps:
     environment:
       GRAMPSHOME: ${SNAP_USER_COMMON}/
       GRAMPS_RESOURCES: ${SNAP}/share/
+      GRAMPSI18N: ${SNAP}/share/locale/
     command: desktop-launch ${SNAP}/bin/gramps
     desktop: share/applications/gramps.desktop
     plugs:
