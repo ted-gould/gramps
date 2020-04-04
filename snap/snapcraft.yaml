@@ -16,8 +16,6 @@ parts:
   gramps:
     plugin: python
     source: .
-    after:
-      - desktop-gtk3
     stage-packages:
       - librsvg2-2
       - python3-gi
@@ -38,40 +36,6 @@ parts:
     override-build: |
       sed -i.bak -e 's|Icon=gramps$|Icon=${SNAP}/share/gramps/images/gramps.svg|g' data/gramps.desktop.in
       snapcraftctl build
-  desktop-gtk3:
-    source: https://github.com/Ubuntu/snapcraft-desktop-helpers.git
-    source-type: git
-    source-subdir: gtk
-    plugin: make
-    make-parameters: ["FLAVOR=gtk3"]
-    build-packages:
-      - libgtk-3-dev
-    stage-packages:
-      - libxkbcommon0  # XKB_CONFIG_ROOT
-      - ttf-ubuntu-font-family
-      - dmz-cursor-theme
-      - light-themes
-      - adwaita-icon-theme
-      - gnome-themes-standard
-      - shared-mime-info
-      - libgtk-3-0
-      - libgdk-pixbuf2.0-0
-      - libglib2.0-bin
-      - libgtk-3-bin
-      - unity-gtk3-module
-      - libappindicator3-1
-      - locales-all
-      - xdg-user-dirs
-
-plugs:
-  gtk-3-themes:
-    interface: content
-    target: $SNAP/data-dir/themes
-    default-provider: gtk-common-themes
-  icon-themes:
-    interface: content
-    target: $SNAP/data-dir/icons
-    default-provider: gtk-common-themes
 
 slots:
   gramps:
@@ -84,15 +48,12 @@ apps:
     environment:
       GRAMPSHOME: ${SNAP_USER_COMMON}/
       GRAMPS_RESOURCES: ${SNAP}/share/
-      GRAMPSI18N: ${SNAP}/share/locale/
-    command: desktop-launch ${SNAP}/bin/gramps
+    command: bin/gramps
     desktop: share/applications/gramps.desktop
+    extensions: [ gnome-3-28 ]
     plugs:
-      - home
-      - unity7
-      - gsettings
       - cups-control
-      - desktop
-      - desktop-legacy
-      - x11
-      - wayland
+      - gsettings
+      - home
+      - network
+      - unity7
