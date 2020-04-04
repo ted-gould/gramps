@@ -2755,7 +2755,25 @@ class BasePage: # pylint: disable=C1001
                  class_="ColumnAttribute", inline=True),
         )
         tbody += trow
-        for placeref in place.get_placeref_list():
+
+        def sort_by_enclosed_by(obj):
+            """
+            Sort by enclosed by
+            """
+            place_name = ""
+            parent_place = self.r_db.get_place_from_handle(obj.ref)
+            if parent_place:
+                place_name = parent_place.get_name().get_value()
+            return place_name
+
+        def sort_by_encl(obj):
+            """
+            Sort by encloses
+            """
+            return obj[0]
+
+        for placeref in sorted(place.get_placeref_list(),
+                               key=sort_by_enclosed_by):
             parent_place = self.r_db.get_place_from_handle(placeref.ref)
             if parent_place:
                 place_name = parent_place.get_name().get_value()
@@ -2777,6 +2795,7 @@ class BasePage: # pylint: disable=C1001
                  class_="ColumnAttribute", inline=True),
         )
         tbody += trow
+        encloses = []
         for link in self.r_db.find_backlink_handles(
                 place.handle, include_classes=['Place']):
             child_place = self.r_db.get_place_from_handle(link[1])
@@ -2784,15 +2803,20 @@ class BasePage: # pylint: disable=C1001
             for placeref in child_place.get_placeref_list():
                 if placeref.ref == place.handle:
                     place_name = child_place.get_name().get_value()
-                    if child_place.handle in self.report.obj_dict[Place]:
-                        place_hyper = self.place_link(child_place.handle,
-                                                      place_name,
-                                                      uplink=self.uplink)
+                    if link[1] in self.report.obj_dict[Place]:
+                        encloses.append((place_name, link[1]))
                     else:
-                        place_hyper = place_name
-                    trow = Html("tr") + (
-                        Html("td", place_hyper,
-                             class_="ColumnPlace", inline=True))
+                        encloses.append((place_name, ""))
+        for (name, handle) in sorted(encloses, key=sort_by_encl):
+            place_name = child_place.get_name().get_value()
+            if handle and handle in self.report.obj_dict[Place]:
+                place_hyper = self.place_link(handle, name,
+                                              uplink=self.uplink)
+            else:
+                place_hyper = name
+            trow = Html("tr") + (
+                Html("td", place_hyper,
+                     class_="ColumnPlace", inline=True))
             tbody += trow
 
         # return place table to its callers
@@ -2960,7 +2984,7 @@ class BasePage: # pylint: disable=C1001
             gid = self.report.obj_dict[bkref_class][bkref_handle][2]
             if role != "":
                 if self.reference_sort:
-                    role = ""
+                    role = self.birth_death_dates(gid)
                 elif role[1:2] == ':':
                     # cal is the original calendar
                     cal, role = role.split(':')
@@ -2988,7 +3012,10 @@ class BasePage: # pylint: disable=C1001
                     # reset the date to the original calendar
                     cdate = date.to_calendar(Date.calendar_names[int(cal)])
                     ldate = self.rlocale.get_date(cdate)
-                    role = " (%s) " % ldate
+                    evtype = self.event_for_date(gid, cdate)
+                    if evtype:
+                        evtype = " " + evtype
+                    role = " (%s) " % (ldate + evtype)
                 else:
                     role = " (%s) " % self._(role)
             ordered += list_html
@@ -3006,6 +3033,45 @@ class BasePage: # pylint: disable=C1001
                     gid_html = ""
                 list_html += Html("a", href=url) + name + role + gid_html
         return ordered
+
+    def event_for_date(self, gid, date):
+        """
+        return the event type
+        """
+        pers = self.r_db.get_person_from_gramps_id(gid)
+        if pers:
+            evt_ref_list = pers.get_event_ref_list()
+            if evt_ref_list:
+                for evt_ref in evt_ref_list:
+                    evt = self.r_db.get_event_from_handle(evt_ref.ref)
+                    if evt:
+                        evdate = evt.get_date_object()
+                        # convert date to gregorian
+                        _date = str(evdate.to_calendar("gregorian"))
+                        if _date == str(date):
+                            return self._(str(evt.get_type()))
+        return ""
+
+    def birth_death_dates(self, gid):
+        """
+        return the birth and death date for the person
+        """
+        pers = self.r_db.get_person_from_gramps_id(gid)
+        if pers:
+            birth = death = ""
+            evt_birth = get_birth_or_fallback(self.r_db, pers)
+            if evt_birth:
+                birthd = evt_birth.get_date_object()
+                # convert date to gregorian to avoid strange years
+                birth = str(birthd.to_calendar("gregorian").get_year())
+            evt_death = get_death_or_fallback(self.r_db, pers)
+            if evt_death:
+                deathd = evt_death.get_date_object()
+                # convert date to gregorian to avoid strange years
+                death = str(deathd.to_calendar("gregorian").get_year())
+            return "(%s-%s)" % (birth, death)
+        else:
+            return ""
 
     def display_bkref_list(self, obj_class, obj_handle):
         """
